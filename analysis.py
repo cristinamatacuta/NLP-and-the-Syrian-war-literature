@@ -81,10 +81,9 @@ def perform_sentiment_analysis(text):
     sentiment_scores = analyzer.polarity_scores(text)
     return sentiment_scores
 
-# Function to extract person names using NER
-def extract_person_names(text):
-    person_names = []
-
+# Function to extract named entities by type
+def extract_named_entities_by_type(text):
+    named_entities_by_type = {}
     sentences = sent_tokenize(text)
     for sentence in sentences:
         words = word_tokenize(sentence)
@@ -92,31 +91,38 @@ def extract_person_names(text):
         named_entities = ne_chunk(tagged_words)
 
         for subtree in named_entities:
-            if type(subtree) == nltk.Tree and subtree.label() == 'PERSON':
-                person_name = ' '.join([word for word, tag in subtree.leaves()])
-                person_names.append(person_name)
+            if isinstance(subtree, nltk.Tree):
+                entity_type = subtree.label()
+                entity_name = ' '.join([word for word, tag in subtree.leaves()])
+                if entity_type not in named_entities_by_type:
+                    named_entities_by_type[entity_type] = []
+                named_entities_by_type[entity_type].append(entity_name)
 
-    return person_names
+    return named_entities_by_type
 
-# Function to find and print the most common person names
-def find_most_common_names(text):
-    person_names = extract_person_names(text)
+# Function to find and print the most common named entities by type
+def find_most_common_entities_by_type(text):
+    named_entities_by_type = extract_named_entities_by_type(text)
 
-    # Count the frequencies of person names
-    name_frequencies = nltk.FreqDist(person_names)
+    most_common_entities_by_type = {}
+    for entity_type, entities in named_entities_by_type.items():
+        entity_frequencies = nltk.FreqDist(entities)
+        most_common_entities_by_type[entity_type] = entity_frequencies.most_common(10)
 
-    return name_frequencies
+    return most_common_entities_by_type
 
 # Function to create a bar chart for the most common names
-def create_name_frequency_chart(name_frequencies, title):
-    names, frequencies = zip(*name_frequencies.most_common(10))  # Get the top 10 names and their frequencies
-    plt.figure(figsize=(10, 6))
-    plt.barh(names, frequencies)
-    plt.xlabel("Frequency")
-    plt.ylabel("Name")
-    plt.title(title)
-    plt.gca().invert_yaxis()  # Invert the y-axis to show the most frequent names at the top
-    plt.show()
+# Function to create bar charts for the most common named entities by type
+def create_entity_frequency_charts(named_entities_by_type):
+    for entity_type, entities in named_entities_by_type.items():
+        entity_names, entity_frequencies = zip(*entities)
+        plt.figure(figsize=(10, 6))
+        plt.barh(entity_names, entity_frequencies)
+        plt.xlabel("Frequency")
+        plt.ylabel("Named Entity")
+        plt.title(f"Most Common {entity_type} Entities")
+        plt.gca().invert_yaxis()  # Invert the y-axis to show the most frequent entities at the top
+        plt.show()
 
 # Function to create a dispersion plot
 def dispersion(text, words_to_plot):
@@ -220,9 +226,11 @@ def main():
     print("Processing Syrian.txt:")
     text1 = read_book1()
    
-    name_frequencies1 = find_most_common_names(text1)
-    create_name_frequency_chart(name_frequencies1, "Most Common Names in Syrian.txt")
+    named_entities_by_type1 = find_most_common_entities_by_type(text1)
+    create_entity_frequency_charts(named_entities_by_type1)
+   
     create_dispersion_plot(text1, ["war", "protest", "regime", "assad", "rebels"])
+    
     frequent_colloc(text1)
     perform_topic_modeling_on_real_words(text1)
     
@@ -246,8 +254,8 @@ def main():
     print("Processing MyCountry.txt:")
     text2 = read_book2()
     print("The most frequent names in MyCountry.txt")
-    name_frequencies2 = find_most_common_names(text2)
-    create_name_frequency_chart(name_frequencies2, "Most Common Names in MyCountry.txt")
+    named_entities_by_type2 = find_most_common_entities_by_type(text2)
+    create_entity_frequency_charts(named_entities_by_type2)
     frequent_colloc(text2)
     perform_topic_modeling_on_real_words(text2)
     create_dispersion_plot(text2, ["war",  "regime", "assad", "rebels", "arrest"])
@@ -267,4 +275,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 
